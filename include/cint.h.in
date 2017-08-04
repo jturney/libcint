@@ -4,6 +4,10 @@
  * Parameters and function prototypes for libcint.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CINT_VERSION    @cint_VERSION@
 
 #cmakedefine I8
@@ -168,3 +172,6 @@ FINT cint2e(double *opijkl, const FINT *shls,
 void cint2e_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
                       const FINT *bas, const FINT nbas, const double *env);
 
+#ifdef __cplusplus
+}
+#endif
