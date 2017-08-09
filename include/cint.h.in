@@ -172,6 +172,29 @@ FINT cint2e(double *opijkl, const FINT *shls,
 void cint2e_optimizer(CINTOpt **opt, const FINT *atm, const FINT natm,
                       const FINT *bas, const FINT nbas, const double *env);
 
+/* One-electron integrals */
+
+#define CINT_DECLARE_INTEGRAL(funcname) \
+    FINT funcname##_cart(double *opijkl, const FINT *shls, const FINT *atm, const FINT natm, const FINT *bas, const FINT nbas, const double *env, const CINTOpt *opt); \
+    FINT funcname##_sph(double *opijkl, const FINT *shls, const FINT *atm, const FINT natm, const FINT *bas, const FINT nbas, const double *env, const CINTOpt *opt);
+
+CINT_DECLARE_INTEGRAL(cint1e_ovlp)
+CINT_DECLARE_INTEGRAL(cint1e_nuc)
+CINT_DECLARE_INTEGRAL(cint1e_kin)
+CINT_DECLARE_INTEGRAL(cint1e_ia01p)
+CINT_DECLARE_INTEGRAL(cint1e_irixp)
+CINT_DECLARE_INTEGRAL(cint1e_ircxp)
+CINT_DECLARE_INTEGRAL(cint1e_iking)
+CINT_DECLARE_INTEGRAL(cint1e_iovlpg)
+CINT_DECLARE_INTEGRAL(cint1e_inucg)
+CINT_DECLARE_INTEGRAL(cint1e_ipovlp)
+CINT_DECLARE_INTEGRAL(cint1e_ipkin)
+CINT_DECLARE_INTEGRAL(cint1e_ipnuc)
+CINT_DECLARE_INTEGRAL(cint1e_iprinv)
+CINT_DECLARE_INTEGRAL(cint1e_rinc)
+
+#undef CINT_DECLARE_INTEGRAL
+
 #ifdef __cplusplus
 }
 #endif

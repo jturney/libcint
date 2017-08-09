@@ -1,23 +1,24 @@
-cmake_minimum_required (VERSION 2.6)
-project (cint)
-set(cint_VERSION "2.8")
+cmake_policy(SET CMP0048 NEW)
+project(cint
+        VERSION 2.8
+        LANGUAGES C
+    )
+set(cint_AUTHORS "Qiming Sun")
+set(cint_DESCRIPTION "An open source library for analytical Gaussian integrals.")
+set(cint_EMAIL "osirpt.sun@gmail.com")
+set(cint_URL "https://github.com/sunqm/libcint")
+set(cint_LICENSE "BSD 2-clause \"Simplified\" License")
+
+cmake_minimum_required (VERSION 3.0)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -DNDEBUG")
 if (NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 endif()
-set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-if (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER 2.8)
-  include(GNUInstallDirs)
-elseif (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} EQUAL 2.8 AND
-    ${CMAKE_PATCH_VERSION} GREATER 4)
-  include(GNUInstallDirs)
-else ()
-  set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "lib")
-  set(CMAKE_INSTALL_INCLUDEDIR include CACHE PATH "include")
-endif (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER 2.8)
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+set(PN ${PROJECT_NAME})
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(QUADMATH)
@@ -75,13 +76,18 @@ endif()
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
   VERSION ${cint_VERSION}
-  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 target_link_libraries(cint ${BLAS_LIBRARIES})
 if(QUADMATH_FOUND)
   target_link_libraries(cint quadmath)
 endif()
 
-install(TARGETS cint DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+install(TARGETS cint
+	EXPORT "${PN}Targets"
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	)
 install(FILES ${PROJECT_BINARY_DIR}/include/cint.h DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
 
 if(ENABLE_EXAMPLE)
@@ -106,3 +112,27 @@ if(BUILD_SHARED_LIBS AND ENABLE_TEST)
       COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/testsuite/test_3c2e.py ${RUN_QUICK_TEST})
   endif()
 endif()
+
+# <<<  Export Interface  >>>
+
+target_compile_definitions(cint INTERFACE USING_${PN})
+target_include_directories(cint INTERFACE
+                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+# <<<  Export Config  >>>
+
+    # explicit "share" not "DATADIR" for CMake search path
+set(CMAKECONFIG_INSTALL_DIR "share/cmake/${PN}")
+configure_package_config_file(cmake/${PN}Config.cmake.in
+                              "${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake"
+                              INSTALL_DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
+                                 VERSION ${${PN}_VERSION}
+                                 COMPATIBILITY SameMajorVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}Config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
+        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+install(EXPORT "${PN}Targets"
+        NAMESPACE "${PN}::"
+        DESTINATION ${CMAKECONFIG_INSTALL_DIR})
+
