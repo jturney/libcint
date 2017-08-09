@@ -1,8 +1,6 @@
 cmake_policy(SET CMP0048 NEW)
-project(cint
-        VERSION 2.8
-        LANGUAGES C
-    )
+project(cint VERSION 2.8.7 LANGUAGES C)
+
 set(cint_AUTHORS "Qiming Sun")
 set(cint_DESCRIPTION "An open source library for analytical Gaussian integrals.")
 set(cint_EMAIL "osirpt.sun@gmail.com")
@@ -11,22 +9,37 @@ set(cint_LICENSE "BSD 2-clause \"Simplified\" License")
 
 cmake_minimum_required (VERSION 3.0)
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -DNDEBUG")
-if (NOT DEFINED CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
-endif()
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+################################### Options ####################################
+include(psi4OptionsTools)
+option_with_default(CMAKE_BUILD_TYPE "Build type" RelWithDebInfo)
+option_with_default(BUILD_SHARED_LIBS "Build final library as shared, not static" OFF)
+option_with_default(BUILD_FPIC "Libraries will be compiled with position independent code" ON)
+if (${BUILD_SHARED_LIBS} AND NOT ${BUILD_FPIC})
+	message(FATAL_ERROR "BUILD_SHARED_LIBS ON and BUILD_FPIC OFF are incompatible, as shared library requires position independent code")
+endif()
+option_with_print(ENABLE_GENERIC "Enable mostly static linking in shared library" OFF)
+option_with_flags(ENABLE_XHOST "Enable processor-specific optimization" ON "-xHost" "-march=native")
+
+######################### Process & Validate Options ###########################
+include(autocmake_safeguards)
+include(custom_static_library)
+
+find_package(TargetLAPACK REQUIRED)
+
+################################# Main Project #################################
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+
 set(PN ${PROJECT_NAME})
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(QUADMATH)
 if(QUADMATH_FOUND)
   set(HAVE_QUADMATH_H 1 CACHE INTERNAL "Have QUADMATH")
 endif()
 
-find_package(BLAS REQUIRED)
+#find_package(BLAS REQUIRED)
 
 include(CheckFunctionExists)
 set(CMAKE_REQUIRED_INCLUDES math.h)
@@ -62,25 +75,31 @@ set(cintSrc
   src/autocode/auto_3c2e.c src/autocode/auto_3c1e.c
   src/autocode/gaunt1.c src/autocode/breit1.c)
 
-option(BUILD_SHARED_LIBS "build shared libraries" 1)
+#option(BUILD_SHARED_LIBS "build shared libraries" 1)
 option(ENABLE_EXAMPLE "build examples" 0)
 option(ENABLE_TEST "build tests" 0)
 if(QUICK_TEST)
   set(RUN_QUICK_TEST --quick)
 endif()
 
-if(ENABLE_STATIC)
-  set(BUILD_SHARED_LIBS 0)
-endif()
+#if(ENABLE_STATIC)
+#  set(BUILD_SHARED_LIBS 0)
+#endif()
 
 add_library(cint ${cintSrc})
 set_target_properties(cint PROPERTIES
   VERSION ${cint_VERSION}
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
   POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(cint ${BLAS_LIBRARIES})
+if (${BUILD_SHARED_LIBRARY})
+	target_link_libraries(cint PRIVATE ${LIBC_INTERJECT})
+	if (APPLE)
+		set_target_properties(cint PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+	endif()
+endif()
+target_link_libraries(cint PRIVATE tgt::lapack)
 if(QUADMATH_FOUND)
-  target_link_libraries(cint quadmath)
+	target_link_libraries(cint PRIVATE quadmath)
 endif()
 
 install(TARGETS cint
